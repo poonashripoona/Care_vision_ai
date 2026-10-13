@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your CARE VISION AI check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="app-body">
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('index') }}">
+      <span class="brand-mark" aria-hidden="true">CV</span>
+      <span>
+        <span class="brand-name">CARE VISION AI</span>
+        <span class="brand-tag">Simple skin guidance for everyone</span>
+      </span>
+    </a>
+  </header>
+
+  <div class="disclaimer-banner" role="note">
+    <strong>Preliminary guidance only</strong>
+    This is not a diagnosis and does not replace a qualified clinician. Use it to decide how soon to seek care.
+  </div>
+
+  <main id="main">
+    <section class="results-hero">
+      <h1>Your skin check</h1>
+      <p class="lede">{{ assessment.concern_label }}</p>
+    </section>
+
+    {% set level = assessment.risk_level|lower %}
+    <article class="risk-card {{ level }}" aria-live="polite">
+      <p class="risk-kicker">Preliminary risk</p>
+      <p class="risk-level">{{ assessment.risk_level }}</p>
+      <p>{{ assessment.explanation }}</p>
+    </article>
+
+    <div class="meta-row">
+      {% if assessment.duration %}
+        <span class="chip">Duration: {{ assessment.duration }}</span>
+      {% endif %}
+      {% if assessment.progression %}
+        <span class="chip">Change: {{ assessment.progression }}</span>
+      {% endif %}
+      <span class="chip">Checked {{ assessment.timestamp.strftime("%d %b %Y, %H:%M") }} UTC</span>
+    </div>
+
+    <section class="card" style="margin-bottom: 1.25rem;">
+      <h2 class="text-xl font-bold mb-2">Who to see</h2>
+      <p>{{ assessment.specialist }}</p>
+      {% if assessment.symptoms_text %}
+        <p class="hint" style="margin-top: 0.8rem;"><strong>You described:</strong> {{ assessment.symptoms_text }}</p>
+      {% endif %}
+      {% if assessment.image_path %}
+        <img src="{{ url_for('static', filename=assessment.image_path) }}" alt="The photo you uploaded" style="margin-top:1rem;max-height:220px;border-radius:14px;">
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2 class="text-xl font-bold mb-2">Map to nearby hospitals</h2>
+      <p class="hint">Pins show sample clinics around a demo village. Share your location to update distances, tap a hospital to draw the road, then open turn-by-turn directions.</p>
+      <div class="map-toolbar">
+        <button type="button" id="locate-btn">Use my location</button>
+        <button type="button" id="route-nearest-btn">Route to nearest</button>
+      </div>
+      <div id="hospital-map" role="region" aria-label="Map of nearby hospitals"></div>
+      <p id="map-status">Showing demo village hospitals. Tap a pin or a card to map the way there.</p>
+
+      <h3 class="text-lg font-bold" style="margin: 0.4rem 0 0.75rem;">Nearby care</h3>
+      <div class="hospital-list" id="hospital-list">
+        {% for hospital in hospitals %}
+          <article class="hospital" data-hospital-id="{{ hospital.id }}">
+            <div class="distance">
+              <span data-distance-value>{{ hospital.distance_km }}</span>
+              <span>km away</span>
+            </div>
+            <div>
+              <h3>{{ hospital.name }}</h3>
+              <p>{{ hospital.address }}</p>
+              <p>Doctors on site: {{ hospital.available_specialists }}</p>
+              <p>Call <a href="tel:{{ hospital.contact_number }}">{{ hospital.contact_number }}</a></p>
+              <p class="directions">
+                <a data-maps-link href="https://www.google.com/maps/dir/?api=1&destination={{ hospital.latitude }},{{ hospital.longitude }}" target="_blank" rel="noopener">Google directions</a>
+                <a data-osm-link href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route={{ map_origin.lat }},{{ map_origin.lng }};{{ hospital.latitude }},{{ hospital.longitude }}" target="_blank" rel="noopener">OpenStreetMap</a>
+              </p>
+            </div>
+            <p class="availability">
+              {% if hospital.doctors_available %}
+                {{ hospital.doctors_available }} doctor{{ 's' if hospital.doctors_available != 1 else '' }} available
+              {% else %}
+                Check by phone
+              {% endif %}
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <a class="btn-ghost" href="{{ url_for('index') }}">Check another photo</a>
+  </main>
+
+  <footer class="site-footer">
+    <p>CARE VISION AI prototype · Guidance only · Not a substitute for professional medical advice.</p>
+  </footer>
+  <script id="hospital-map-data" type="application/json">{{ {"hospitals": hospitals_geo, "origin": map_origin} | tojson }}</script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+</body>
+</html>
